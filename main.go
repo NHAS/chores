@@ -1,7 +1,7 @@
 package main
 
 import (
-	"crypto/sha1"
+	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"html/template"
@@ -12,22 +12,30 @@ import (
 	"time"
 )
 
-type Task struct {
+type task struct {
 	Description string
 	Assigned    string `json:"-"`
 	Completed   bool   `json:"-"`
+	ApiId       string `json:"-"`
 }
 
-type Week struct {
+type week struct {
 	StartDate string
 	EndDate   string
 
-	Tasks map[string]Task
+	Zones []zone
 }
 
-type Configuration struct {
+type zone struct {
+	Name string
+
 	Users []string
-	Tasks []Task
+	Tasks []task
+}
+
+type configuration struct {
+	Zones      []zone
+	StartIndex int `json:"-"`
 }
 
 func getWeekRange() (start, end time.Time) {
@@ -45,30 +53,27 @@ func getWeekRange() (start, end time.Time) {
 	return start, end
 }
 
-func buildMap(startIndex int, users []string, tasks []Task) (idToTask map[string]Task) {
-	idToTask = make(map[string]Task)
-
+func setupTasks(startIndex int, users []string, tasks []task) {
 	if startIndex < 0 {
 		log.Fatal("Mate, the range is out of whack: ", startIndex)
 	}
 
-	for i, _ := range tasks {
+	for i := range tasks {
 		tasks[i].Assigned = "Anyone"
+		tasks[i].Completed = false
 	}
 
 	for i, u := range users {
 		tasks[(startIndex+i)%len(tasks)].Assigned = u
 	}
+}
 
-	for _, t := range tasks {
-		hasher := sha1.New()
-		hasher.Write([]byte(t.Description))
-		id := string(hex.EncodeToString(hasher.Sum(nil)))
-
-		idToTask[id] = t
+func randomHex(n int) string {
+	bytes := make([]byte, n)
+	if _, err := rand.Read(bytes); err != nil {
+		log.Fatal(err)
 	}
-
-	return idToTask
+	return hex.EncodeToString(bytes)
 }
 
 func main() {
@@ -78,19 +83,30 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var config Configuration
+	var config configuration
 	err = json.Unmarshal(file, &config)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Println("Users: ", config.Users)
-	log.Println("Tasks: ", config.Tasks)
+	apiIDMap := make(map[string]*task)
+	for j := range config.Zones {
+		zone := &config.Zones[j]
+
+		log.Println("Zone \"", zone.Name, "\"")
+		log.Println("\tUsers: ", zone.Users)
+		log.Println("\tTasks: ", zone.Tasks)
+
+		for i := range zone.Tasks {
+			task := &zone.Tasks[i]
+			task.ApiId = randomHex(16)
+			apiIDMap[task.ApiId] = task
+		}
+
+		setupTasks(config.StartIndex, zone.Users, zone.Tasks)
+	}
 
 	s, e := getWeekRange()
-
-	startTask := 0
-	weekTasks := buildMap(startTask, config.Users, config.Tasks)
 
 	tmpl := template.Must(template.ParseFiles("index.html"))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -98,15 +114,18 @@ func main() {
 		log.Println(r)
 
 		if time.Now().After(e) {
-			startTask++
+			config.StartIndex++
+			for j := range config.Zones {
+				zone := &config.Zones[j]
+				setupTasks(config.StartIndex, zone.Users, zone.Tasks)
+			}
 			s, e = getWeekRange()
-			weekTasks = buildMap(startTask, config.Users, config.Tasks)
 		}
 
-		tw := Week{
+		tw := week{
 			StartDate: s.Format("Jan-02-06"),
 			EndDate:   e.Format("Jan-02-06"),
-			Tasks:     weekTasks,
+			Zones:     config.Zones,
 		}
 
 		tmpl.Execute(w, tw)
@@ -114,25 +133,31 @@ func main() {
 	})
 
 	http.HandleFunc("/complete/", func(w http.ResponseWriter, r *http.Request) {
-		id := strings.TrimPrefix(r.URL.Path, "/complete/")
-		if _, ok := weekTasks[id]; ok {
-			completed := weekTasks[id]
-			completed.Completed = true
-			weekTasks[id] = completed
-		}
 		log.Println(r)
-		w.WriteHeader(http.StatusNoContent)
+
+		id := strings.TrimPrefix(r.URL.Path, "/complete/")
+		if task, ok := apiIDMap[id]; ok {
+			task.Completed = true
+
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		w.WriteHeader(http.StatusNotFound)
 	})
 
 	http.HandleFunc("/uncomplete/", func(w http.ResponseWriter, r *http.Request) {
-		id := strings.TrimPrefix(r.URL.Path, "/uncomplete/")
-		if _, ok := weekTasks[id]; ok {
-			uncompleted := weekTasks[id]
-			uncompleted.Completed = false
-			weekTasks[id] = uncompleted
-		}
 		log.Println(r)
-		w.WriteHeader(http.StatusNoContent)
+
+		id := strings.TrimPrefix(r.URL.Path, "/uncomplete/")
+		if task, ok := apiIDMap[id]; ok {
+			task.Completed = false
+
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		w.WriteHeader(http.StatusNotFound)
 	})
 
 	log.Println("Started up successfully!")

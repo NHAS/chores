@@ -224,43 +224,47 @@
             <div class="card-hover-shadow-2x mb-3 card">
                 <div class="card-header-tab card-header">
                     <div class="card-header-title font-size-lg text-capitalize font-weight-normal"><i
-                            class="fa fa-tasks"></i>&nbsp;{{.StartDate}} -> {{.EndDate}} </div>
+                            class="fa fa-tasks"></i>&nbsp;{{.StartDate}} to {{.EndDate}} </div>
                 </div>
-                <div class="scroll-area-sm">
-                    <perfect-scrollbar class="ps-show-limits">
-                        <div style="position: static;" class="ps ps--active-y">
-                            <div class="ps-content">
-                                <ul class=" list-group list-group-flush">
 
-                                    {{range $key, $value := .Tasks}}
-                                    <li class="list-group-item">
-                                        <div class="widget-content p-0">
-                                            <div class="widget-content-wrapper">
-                                                <div class="widget-content-left">
-                                                    <div class="widget-heading" id='{{$key}}'> {{$value.Description}}
-                                                        {{if .Completed}}<div class="badge badge-success ml-2">
-                                                            Completed!</div> {{end}}
-                                                    </div>
-
-                                                    <span class="badge badge-info">{{$value.Assigned}}</span>
-
-                                                </div>
-
-                                                <div class="widget-content-right"> <button
-                                                        class="btn-transition btn {{if $value.Completed}} btn-outline-danger completed {{else}} btn-outline-success {{end}}"
-                                                        onclick="changeCompletion(this,'{{$key}}')">
-                                                        <i
-                                                            class="fa {{if $value.Completed}} fa-undo {{else}} fa-check {{end}}"></i></button>
-                                                </div>
+                <div style="position: static;" class="ps ps--active-y">
+                    <div class="ps-content">
+                        {{range .Zones}}
+                        <ul class=" list-group list-group-flush">
+                            <li class="list-group-item">
+                                <div class="text-center" style="font-size: 20px;">
+                                    {{.Name}}
+                                </div>
+                            </li>
+                            {{range .Tasks}}
+                            <li class="list-group-item" style="margin-bottom: -2px;">
+                                <div class="widget-content p-0">
+                                    <div class="widget-content-wrapper">
+                                        <div class="widget-content-left">
+                                            <div class="widget-heading" id='{{.ApiId}}'> {{.Description}}
+                                                {{if .Completed}}<div class="badge badge-success ml-2">
+                                                    Completed!</div> {{end}}
                                             </div>
+
+                                            <span class="badge badge-info">{{.Assigned}}</span>
+
                                         </div>
-                                    </li>
-                                    {{end}}
-                                </ul>
-                            </div>
-                        </div>
-                    </perfect-scrollbar>
+
+                                        <div class="widget-content-right"> <button
+                                                class="btn-transition btn {{if .Completed}} btn-outline-danger completed {{else}} btn-outline-success {{end}}"
+                                                onclick="changeCompletion(this,'{{.ApiId}}')">
+                                                <i
+                                                    class="fa {{if .Completed}} fa-undo {{else}} fa-check {{end}}"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                            {{end}}
+                        </ul>
+                        {{end}}
+                    </div>
                 </div>
+
                 <div class="d-block text-right card-footer"></div>
             </div>
         </div>
