@@ -1,0 +1,44 @@
+{
+    "zones": [
+        {
+            "name": "Upstairs",
+            "users": [
+                "Jordan S.",
+                "Jordan B.",
+                "Ashley"
+            ],
+            "tasks": [
+                {
+                    "description": "Clean the kitchen"
+                },
+                {
+                    "description": "Wash shower"
+                },
+                {
+                    "description": "Clean Toliet"
+                },
+                {
+                    "description": "Vacuum clean"
+                }
+            ]
+        },
+        {
+            "name": "Downstairs",
+            "users": [
+                "Jasper",
+                "Emily"
+            ],
+            "tasks": [
+                {
+                    "description": "Clean the kitchen"
+                },
+                {
+                    "description": "Clean bathroom"
+                },
+                {
+                    "description": "Vacuum"
+                }
+            ]
+        }
+    ]
+}
