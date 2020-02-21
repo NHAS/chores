@@ -1,0 +1,270 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <title>Weekly Chores</title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css' rel='stylesheet'>
+    <link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css' rel='stylesheet'>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+            font-size: 0.88rem;
+            font-weight: 400;
+            line-height: 1.5;
+            color: #495057;
+            text-align: left;
+            background-color: #6200EA
+        }
+
+        i {
+            font-style: italic
+        }
+
+        .card {
+            box-shadow: 0 0.46875rem 2.1875rem rgba(4, 9, 20, 0.03), 0 0.9375rem 1.40625rem rgba(4, 9, 20, 0.03), 0 0.25rem 0.53125rem rgba(4, 9, 20, 0.05), 0 0.125rem 0.1875rem rgba(4, 9, 20, 0.03);
+            border-width: 0;
+            transition: all .2s
+        }
+
+        .card-header:first-child {
+            border-radius: calc(0.25rem - 1px) calc(0.25rem - 1px) 0 0
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            border-bottom-width: 1px;
+            padding-top: 0;
+            padding-bottom: 0;
+            padding-right: 0.625rem;
+            height: 3.5rem;
+            background-color: #fff
+        }
+
+        .widget-subheading {
+            color: #858a8e;
+            font-size: 10px
+        }
+
+        .card-header.card-header-tab .card-header-title {
+            display: flex;
+            align-items: center;
+            white-space: nowrap
+        }
+
+        .card-header .header-icon {
+            font-size: 1.65rem;
+            margin-right: 0.625rem
+        }
+
+        .card-header.card-header-tab .card-header-title {
+            display: flex;
+            align-items: center;
+            white-space: nowrap
+        }
+
+        .btn-actions-pane-right {
+            margin-left: auto;
+            white-space: nowrap
+        }
+
+        .text-capitalize {
+            text-transform: capitalize !important
+        }
+
+        .scroll-area-sm {
+            height: 288px;
+            overflow-x: hidden
+        }
+
+        .list-group-item {
+            position: relative;
+            display: block;
+            padding: 0.75rem 1.25rem;
+            margin-bottom: -1px;
+            background-color: #fff;
+            border: 1px solid rgba(0, 0, 0, 0.125)
+        }
+
+        .list-group {
+            display: flex;
+            flex-direction: column;
+            padding-left: 0;
+            margin-bottom: 0
+        }
+
+        .todo-indicator {
+            position: absolute;
+            width: 4px;
+            height: 60%;
+            border-radius: 0.3rem;
+            left: 0.625rem;
+            top: 20%;
+            opacity: .6;
+            transition: opacity .2s
+        }
+
+        .bg-warning {
+            background-color: #f7b924 !important
+        }
+
+        .widget-content {
+            padding: 1rem;
+            flex-direction: row;
+            align-items: center
+        }
+
+        .widget-content .widget-content-wrapper {
+            display: flex;
+            flex: 1;
+            position: relative;
+            align-items: center
+        }
+
+        .widget-content .widget-content-right.widget-content-actions {
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity .2s
+        }
+
+        .widget-content .widget-content-right {
+            margin-left: auto
+        }
+
+        .btn:not(:disabled):not(.disabled) {
+            cursor: pointer
+        }
+
+        .btn {
+            position: relative;
+            transition: color 0.15s, background-color 0.15s, border-color 0.15s, box-shadow 0.15s
+        }
+
+        .btn-outline-success {
+            color: #3ac47d;
+            border-color: #3ac47d
+        }
+
+        .btn-outline-success:hover {
+            color: #fff;
+            background-color: #3ac47d;
+            border-color: #3ac47d
+        }
+
+        .btn-outline-success:hover {
+            color: #fff;
+            background-color: #3ac47d;
+            border-color: #3ac47d
+        }
+
+        .btn-primary {
+            color: #fff;
+            background-color: #3f6ad8;
+            border-color: #3f6ad8
+        }
+
+        .btn {
+            position: relative;
+            transition: color 0.15s, background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
+            outline: none !important
+        }
+
+        .card-footer {
+            background-color: #fff
+        }
+    </style>
+    <script type='text/javascript' src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>
+    <script type='text/javascript' src='https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js'></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"
+        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+
+
+    <script type='text/javascript'>
+
+        function changeCompletion(elm, id) {
+            console.log(id)
+
+            let el = $(elm)
+            if (el.hasClass("completed")) {
+                $.get("/uncomplete/" + id, function (data) {
+                    $("#" + id).children(".badge").remove();
+                    console.log("Uncompleted task: ", id)
+
+                    el.removeClass("completed btn-outline-danger")
+                    el.addClass("btn-outline-success")
+
+                    el.children(".fa").removeClass("fa-undo")
+                    el.children(".fa").addClass("fa-check")
+
+                });
+            } else {
+                $.get("/complete/" + id, function (data) {
+                    $("#" + id).append('<div class="badge badge-success ml-2"> Completed!</div>');
+                    console.log("Completed task: ", id)
+
+                    el.addClass("completed btn-outline-danger")
+                    el.removeClass("btn-outline-success")
+
+
+                    el.children(".fa").addClass("fa-undo")
+                    el.children(".fa").removeClass("fa-check")
+                });
+            }
+        }
+
+    </script>
+</head>
+
+<body>
+    <div class="row d-flex justify-content-center" style="margin-top: 40px;">
+        <div class="col-md-8 mx-auto">
+            <div class="card-hover-shadow-2x mb-3 card">
+                <div class="card-header-tab card-header">
+                    <div class="card-header-title font-size-lg text-capitalize font-weight-normal"><i
+                            class="fa fa-tasks"></i>&nbsp;{{.StartDate}} -> {{.EndDate}} </div>
+                </div>
+                <div class="scroll-area-sm">
+                    <perfect-scrollbar class="ps-show-limits">
+                        <div style="position: static;" class="ps ps--active-y">
+                            <div class="ps-content">
+                                <ul class=" list-group list-group-flush">
+
+                                    {{range $key, $value := .Tasks}}
+                                    <li class="list-group-item">
+                                        <div class="widget-content p-0">
+                                            <div class="widget-content-wrapper">
+                                                <div class="widget-content-left">
+                                                    <div class="widget-heading" id='{{$key}}'> {{$value.Description}}
+                                                        {{if .Completed}}<div class="badge badge-success ml-2">
+                                                            Completed!</div> {{end}}
+                                                    </div>
+
+                                                    <span class="badge badge-info">{{$value.Assigned}}</span>
+
+                                                </div>
+
+                                                <div class="widget-content-right"> <button
+                                                        class="btn-transition btn {{if $value.Completed}} btn-outline-danger completed {{else}} btn-outline-success {{end}}"
+                                                        onclick="changeCompletion(this,'{{$key}}')">
+                                                        <i
+                                                            class="fa {{if $value.Completed}} fa-undo {{else}} fa-check {{end}}"></i></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                    {{end}}
+                                </ul>
+                            </div>
+                        </div>
+                    </perfect-scrollbar>
+                </div>
+                <div class="d-block text-right card-footer"></div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
