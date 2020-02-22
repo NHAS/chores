@@ -39,16 +39,15 @@ type configuration struct {
 }
 
 func getWeekRange() (start, end time.Time) {
-	current := time.Now()
+	start = time.Now()
 	for {
-		if current.Weekday() == time.Monday {
+		if start.Weekday() == time.Monday {
 			break
 		}
-		current = current.AddDate(0, 0, -1)
+		start = start.AddDate(0, 0, -1)
 	}
 
-	start = current
-	end = current.AddDate(0, 0, 6)
+	end = start.AddDate(0, 0, 7)
 
 	return start, end
 }
