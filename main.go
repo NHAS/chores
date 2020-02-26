@@ -168,6 +168,8 @@ func main() {
 		w.WriteHeader(http.StatusNotFound)
 	})
 
-	log.Println("Started up successfully!")
-	http.ListenAndServe("127.0.0.1:8080", nil)
+	err = http.ListenAndServe("127.0.0.1:8080", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
