@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"flag"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -34,8 +35,8 @@ type zone struct {
 }
 
 type configuration struct {
-	Zones      []zone
-	StartIndex int `json:"-"`
+	Zones []zone
+	Index int
 }
 
 func getWeekRange() (start, end time.Time) {
@@ -77,7 +78,12 @@ func randomHex(n int) string {
 
 func main() {
 
-	file, err := ioutil.ReadFile("config.json")
+	configPath := flag.String("config", "/usr/local/share/chores/config.json", "Configuration file mapping out zones")
+	webroot := flag.String("root", "/usr/local/share/chores/web", "Path where web resources are found")
+
+	flag.Parse()
+
+	file, err := ioutil.ReadFile(*configPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -102,24 +108,24 @@ func main() {
 			apiIDMap[task.ApiId] = task
 		}
 
-		setupTasks(config.StartIndex, zone.Users, zone.Tasks)
+		setupTasks(config.Index, zone.Users, zone.Tasks)
 	}
 
 	s, e := getWeekRange()
 
-	fs := http.FileServer(http.Dir("static"))
+	fs := http.FileServer(http.Dir(*webroot + "/static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	tmpl := template.Must(template.ParseFiles("index.html"))
+	tmpl := template.Must(template.ParseFiles(*webroot + "/index.html"))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 
 		log.Println(r)
 
 		if time.Now().After(e) {
-			config.StartIndex++
+			config.Index++
 			for j := range config.Zones {
 				zone := &config.Zones[j]
-				setupTasks(config.StartIndex, zone.Users, zone.Tasks)
+				setupTasks(config.Index, zone.Users, zone.Tasks)
 			}
 			s, e = getWeekRange()
 		}
