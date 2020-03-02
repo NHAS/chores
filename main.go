@@ -63,9 +63,15 @@ func setupTasks(startIndex int, users []string, tasks []task) {
 		tasks[i].Completed = false
 	}
 
-	for i, u := range users {
-		tasks[(startIndex+i)%len(tasks)].Assigned = u
+	if len(tasks) > 1 {
+		for i, u := range users {
+			tasks[(startIndex+i)%len(tasks)].Assigned = u
+		}
+		return
 	}
+
+	tasks[0].Assigned = users[startIndex%len(users)]
+
 }
 
 func randomHex(n int) string {
