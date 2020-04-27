@@ -5,13 +5,18 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
+
 	"strings"
 	"time"
 )
+
+var Index int
 
 type task struct {
 	Description string
@@ -36,7 +41,6 @@ type zone struct {
 
 type configuration struct {
 	Zones []zone
-	Index int
 }
 
 func getWeekRange() (start, end time.Time) {
@@ -86,8 +90,19 @@ func main() {
 
 	configPath := flag.String("config", "/usr/local/share/chores/config.json", "Configuration file mapping out zones")
 	webroot := flag.String("root", "/usr/local/share/chores/web", "Path where web resources are found")
+	state := flag.String("index_path", "/var/chores/index.int", "The index of current person for current task")
 
 	flag.Parse()
+
+	index, err := ioutil.ReadFile(*state)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = fmt.Sscan(string(index), &Index)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	file, err := ioutil.ReadFile(*configPath)
 	if err != nil {
@@ -114,7 +129,7 @@ func main() {
 			apiIDMap[task.ApiId] = task
 		}
 
-		setupTasks(config.Index, zone.Users, zone.Tasks)
+		setupTasks(Index, zone.Users, zone.Tasks)
 	}
 
 	s, e := getWeekRange()
@@ -128,10 +143,15 @@ func main() {
 		log.Println(r)
 
 		if time.Now().After(e) {
-			config.Index++
+			Index++
+			err = ioutil.WriteFile(*state, []byte(strconv.Itoa(Index)), 0644)
+			if err != nil {
+				log.Fatal(err)
+			}
+
 			for j := range config.Zones {
 				zone := &config.Zones[j]
-				setupTasks(config.Index, zone.Users, zone.Tasks)
+				setupTasks(Index, zone.Users, zone.Tasks)
 			}
 			s, e = getWeekRange()
 		}
