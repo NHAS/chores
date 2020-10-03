@@ -188,8 +188,9 @@
             console.log(id)
 
             let el = $(elm)
-            if (el.hasClass("completed")) {
-                $.get("/uncomplete/" + id, function (data) {
+
+            $.get("/toggle/" + id, function (data) {
+                if (el.hasClass("completed")) {
                     $("#" + id).children(".badge").remove();
                     console.log("Uncompleted task: ", id)
 
@@ -198,10 +199,7 @@
 
                     el.children(".fa").removeClass("fa-undo")
                     el.children(".fa").addClass("fa-check")
-
-                });
-            } else {
-                $.get("/complete/" + id, function (data) {
+                } else {
                     $("#" + id).append('<div class="badge badge-success ml-2"> Completed!</div>');
                     console.log("Completed task: ", id)
 
@@ -211,8 +209,9 @@
 
                     el.children(".fa").addClass("fa-undo")
                     el.children(".fa").removeClass("fa-check")
-                });
-            }
+                }
+
+            });
         }
 
     </script>

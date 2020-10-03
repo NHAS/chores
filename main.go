@@ -10,7 +10,10 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 
 	"strings"
 	"time"
@@ -57,7 +60,7 @@ func getWeekRange() (start, end time.Time) {
 	return start, end
 }
 
-func setupTasks(startIndex int, users []string, tasks []task) {
+func distributeTasks(startIndex int, users []string, tasks []task) {
 	if startIndex < 0 {
 		log.Fatal("Mate, the range is out of whack: ", startIndex)
 	}
@@ -129,20 +132,38 @@ func main() {
 			apiIDMap[task.ApiId] = task
 		}
 
-		setupTasks(Index, zone.Users, zone.Tasks)
+		distributeTasks(Index, zone.Users, zone.Tasks)
 	}
 
-	s, e := getWeekRange()
+	start, end := getWeekRange()
 
 	fs := http.FileServer(http.Dir(*webroot + "/static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	tmpl := template.Must(template.ParseFiles(*webroot + "/index.html"))
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	sigs := make(chan os.Signal, 1)
 
-		log.Println(r)
+	// `signal.Notify` registers the given channel to
+	// receive notifications of the specified signals.
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-		if time.Now().After(e) {
+	// This goroutine executes a blocking receive for
+	// signals. When it gets one it'll print it out
+	// and then notify the program that it can finish.
+	go func() {
+		<-sigs
+
+		err = ioutil.WriteFile(*state, []byte(strconv.Itoa(Index)), 0644)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		os.Exit(0)
+	}()
+
+	go func() {
+		for {
+			<-time.After(end.Sub(time.Now()))
+
 			Index++
 			err = ioutil.WriteFile(*state, []byte(strconv.Itoa(Index)), 0644)
 			if err != nil {
@@ -151,14 +172,21 @@ func main() {
 
 			for j := range config.Zones {
 				zone := &config.Zones[j]
-				setupTasks(Index, zone.Users, zone.Tasks)
+				distributeTasks(Index, zone.Users, zone.Tasks)
 			}
-			s, e = getWeekRange()
+			start, end = getWeekRange()
+
 		}
+	}()
+
+	tmpl := template.Must(template.ParseFiles(*webroot + "/index.html"))
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+
+		log.Println(r)
 
 		tw := week{
-			StartDate: s.Format("Jan-02-06"),
-			EndDate:   e.Format("Jan-02-06"),
+			StartDate: start.Format("Jan-02-06"),
+			EndDate:   end.Format("Jan-02-06"),
 			Zones:     config.Zones,
 		}
 
@@ -166,12 +194,12 @@ func main() {
 
 	})
 
-	http.HandleFunc("/complete/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/toggle/", func(w http.ResponseWriter, r *http.Request) {
 		log.Println(r)
 
-		id := strings.TrimPrefix(r.URL.Path, "/complete/")
+		id := strings.TrimPrefix(r.URL.Path, "/toggle/")
 		if task, ok := apiIDMap[id]; ok {
-			task.Completed = true
+			task.Completed = !task.Completed
 
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -180,18 +208,21 @@ func main() {
 		w.WriteHeader(http.StatusNotFound)
 	})
 
-	http.HandleFunc("/uncomplete/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println(r)
+	http.HandleFunc("/rotate", func(w http.ResponseWriter, r *http.Request) {
+		log.Println("Rotating roster")
 
-		id := strings.TrimPrefix(r.URL.Path, "/uncomplete/")
-		if task, ok := apiIDMap[id]; ok {
-			task.Completed = false
-
-			w.WriteHeader(http.StatusNoContent)
-			return
+		Index++
+		err = ioutil.WriteFile(*state, []byte(strconv.Itoa(Index)), 0644)
+		if err != nil {
+			log.Fatal(err)
 		}
 
-		w.WriteHeader(http.StatusNotFound)
+		for j := range config.Zones {
+			zone := &config.Zones[j]
+			distributeTasks(Index, zone.Users, zone.Tasks)
+		}
+		start, end = getWeekRange()
+
 	})
 
 	err = http.ListenAndServe("127.0.0.1:8080", nil)
